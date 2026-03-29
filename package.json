@@ -32,8 +32,8 @@
     "test-server": "node test/server.js",
     "generate-wpt": "node ./test/wpt/generate.js",
     "test-wpt": "mocha test/wpt/generated/*.js",
-    "install": "node scripts/install.js",
-    "tsd": "tsd"
+    "tsd": "tsd",
+    "postinstall": "node scripts/install.js"
   },
   "files": [
     "binding.gyp",

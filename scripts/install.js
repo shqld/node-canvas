@@ -1,25 +1,51 @@
 'use strict'
 
-// If a prebuilt binary is available and functional, skip node-gyp.
-// Otherwise, fall back to building from source.
+const PLATFORMS = {
+  'darwin-arm64': '@shqld/canvas-darwin-arm64',
+  'darwin-x64': '@shqld/canvas-darwin-x64',
+  'linux-arm64-gnu': '@shqld/canvas-linux-arm64-gnu',
+  'linux-arm64-musl': '@shqld/canvas-linux-arm64-musl',
+  'linux-x64-gnu': '@shqld/canvas-linux-x64-gnu',
+  'linux-x64-musl': '@shqld/canvas-linux-x64-musl',
+  'win32-x64': '@shqld/canvas-win32-x64'
+}
 
-try {
-  const bindings = require('../lib/bindings')
-  new bindings.Canvas(1, 1)
-  process.exit(0)
-} catch (err) {
-  console.error('Prebuilt binary not available:', err.message)
-  console.error('Falling back to build from source...')
-  const { execSync } = require('child_process')
+let key = `${process.platform}-${process.arch}`
+if (process.platform === 'linux') {
   try {
-    execSync('node-gyp rebuild', {
-      stdio: 'inherit',
-      cwd: require('path').resolve(__dirname, '..')
-    })
+    require('child_process').execSync('ldd --version 2>&1')
+    key += '-gnu'
   } catch (e) {
-    console.error('Failed to build canvas from source.')
-    console.error('Please install the required system dependencies:')
-    console.error('  https://github.com/Automattic/node-canvas#compiling')
-    process.exit(1)
+    key += (e.stderr && e.stderr.toString().includes('musl')) ? '-musl' : '-gnu'
   }
+}
+
+// Supported platform: check package exists, done
+if (PLATFORMS[key]) {
+  try {
+    require.resolve(`${PLATFORMS[key]}/package.json`)
+    process.exit(0)
+  } catch (_) {
+    // Platform package missing. Try explicit install (esbuild-style fallback)
+    try {
+      const version = require('../package.json').version
+      require('child_process').execSync(
+        `npm install ${PLATFORMS[key]}@${version}`,
+        { stdio: 'inherit', cwd: require('path').resolve(__dirname, '..') }
+      )
+      process.exit(0)
+    } catch (_) {}
+  }
+}
+
+// Unsupported platform or platform package unavailable: node-gyp
+try {
+  require('child_process').execSync('node-gyp rebuild', {
+    stdio: 'inherit',
+    cwd: require('path').resolve(__dirname, '..')
+  })
+} catch (_) {
+  console.error('Failed to build canvas from source.')
+  console.error('Install system dependencies: https://github.com/Automattic/node-canvas#compiling')
+  process.exit(1)
 }
