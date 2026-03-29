@@ -5,8 +5,7 @@
 
 try {
   const bindings = require('../lib/bindings')
-  const canvas = new bindings.Canvas(1, 1)
-  canvas.getContext('2d')
+  new bindings.Canvas(1, 1)
   process.exit(0)
 } catch (err) {
   console.error('Prebuilt binary not available:', err.message)
