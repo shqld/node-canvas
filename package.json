@@ -31,8 +31,8 @@
     "test-server": "node test/server.js",
     "generate-wpt": "node ./test/wpt/generate.js",
     "test-wpt": "mocha test/wpt/generated/*.js",
-    "install": "node scripts/install.js",
-    "dtslint": "dtslint types"
+    "dtslint": "dtslint types",
+    "postinstall": "node scripts/install.js"
   },
   "files": [
     "binding.gyp",
