@@ -8,7 +8,9 @@ try {
   const canvas = new bindings.Canvas(1, 1)
   canvas.getContext('2d')
   process.exit(0)
-} catch (_) {
+} catch (err) {
+  console.error('Prebuilt binary not available:', err.message)
+  console.error('Falling back to build from source...')
   const { execSync } = require('child_process')
   try {
     execSync('node-gyp rebuild', {
