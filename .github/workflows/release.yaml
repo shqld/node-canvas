@@ -8,6 +8,27 @@ env:
   NODE_VERSION: '22'
 
 jobs:
+  validate:
+    name: Validate package versions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check optionalDependencies match package version
+        run: |
+          node -e "
+            const pkg = require('./package.json');
+            const version = pkg.version;
+            const mismatched = Object.entries(pkg.optionalDependencies || {})
+              .filter(([, v]) => v !== version);
+            if (mismatched.length) {
+              console.error('optionalDependencies version mismatch:');
+              mismatched.forEach(([name, v]) =>
+                console.error('  ' + name + ': ' + v + ' (expected ' + version + ')'));
+              process.exit(1);
+            }
+            console.log('All optionalDependencies match version ' + version);
+          "
+
   build-linux-x64:
     name: Linux x64
     runs-on: ubuntu-24.04
@@ -242,6 +263,7 @@ jobs:
   publish:
     name: Publish to npm
     needs:
+      - validate
       - build-linux-x64
       - build-linux-arm64
       - build-darwin-x64
@@ -275,19 +297,6 @@ jobs:
       # Wait for registry propagation
       - name: Wait for registry
         run: sleep 30
-
-      # Sync optionalDependencies versions to match the release version
-      - name: Sync optionalDependencies versions
-        run: |
-          node -e "
-            const fs = require('fs');
-            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            const version = pkg.version;
-            for (const dep of Object.keys(pkg.optionalDependencies || {})) {
-              pkg.optionalDependencies[dep] = version;
-            }
-            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-          "
 
       # Publish main package
       - name: Publish main package
